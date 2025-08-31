@@ -73,7 +73,6 @@ def save(trading_date):
         print('done', symbol, name)
         with open('data/dup_tick.txt', 'a') as fp:
             fp.write(dup + '\n')
-        break
 
         time.sleep(2)
 

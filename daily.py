@@ -10,19 +10,33 @@ import time
 import a_all
 
 def get_table_name(adjust=''):
-    table = 'a_daily'
+    table = 'daily'
     if adjust == '':
         return table
     else:
         return table + '_' + adjust
 
-def init_a_daily(conn, adjust=''):
+def init_daily(conn, adjust=''):
+    '''
+    trading_date 交易日期; 2025-08-29
+    open_price  开盘价; 单位: 分
+    close_price 收盘价; 单位: 分
+    high_price  最高价; 单位: 分
+    low_price   最低价; 单位: 分
+    trading_volume  成交量; 单位: 手
+    trading_amount  成交额; 单位: 分
+    amplitude       振幅=(当日最高价 - 当日最低价) / 前一个交易日收盘价; x100
+    change_percent  涨跌幅=(当日收盘价 - 前一个交易日收盘价) / 前一个交易日收盘价; 单位: 分
+    change_amount   涨跌额=当日收盘价 - 前一个交易日收盘价; 单位: 分
+    outstanding_share   流动股本; 单位: 股
+    turnover_tate   换手率=成交量/流动股本; x100
+    '''
+
     table = get_table_name(adjust)
 
     cur = conn.cursor()
     cur.execute('''
     CREATE TABLE IF NOT EXISTS %s (
-        symbol          TEXT NOT NULL,
         trading_date    TEXT NOT NULL,
         open_price      INTEGER NOT NULL,
         close_price     INTEGER NOT NULL,
@@ -39,7 +53,7 @@ def init_a_daily(conn, adjust=''):
     ''' % (table, ))
     
     cur.execute('''
-    CREATE UNIQUE INDEX IF NOT EXISTS uk_%s on %s (symbol, trading_date);
+    CREATE UNIQUE INDEX IF NOT EXISTS uk_%s on %s (trading_date);
     ''' % (table, table))
 
     conn.commit()
@@ -53,25 +67,27 @@ def save(adjust='', start_date='19700101', end_date='20250830'):
 
     all_data = a_all.read()
     for symbol, name in all_data.items():
-        with open('daily.txt', 'r') as fp:
-            if fp.read().find(symbol + adjust) >= 0:
+        dup = symbol + '#' + adjust
+        with open('data/dup_daily.txt', 'r') as fp:
+            if fp.read().find(dup) >= 0:
                 continue
         print('start', adjust, symbol, name)
         d = ak.stock_zh_a_hist(symbol=symbol[2:], period="daily", start_date=start_date, end_date=end_date, adjust=adjust)
 
-        conn = sqlite3.connect('data/a_daily.db')
-        cur = conn.cursor()
+        conn = sqlite3.connect('data/' + symbol + '/daily.db')
+        init_daily(conn, adjust)
 
+        cur = conn.cursor()
         for idx in d.index:
             trading_date = d['日期'][idx].strftime('%Y-%m-%d')
-            row = (symbol[2:], trading_date,
+            row = (trading_date,
                 f2i(d['开盘'][idx]), f2i(d['收盘'][idx]), f2i(d['最高'][idx]), f2i(d['最低'][idx]), int(d['成交量'][idx]), f2i(d['成交额'][idx]),
                 f2i(d['振幅'][idx]), f2i(d['涨跌幅'][idx]), f2i(d['涨跌额'][idx]), 0, f2i(d['换手率'][idx]))
             print(row)
-            sql = '''INSERT INTO %s (symbol, trading_date,
+            sql = '''INSERT INTO %s (trading_date,
                 open_price, close_price, high_price, low_price, trading_volume, trading_amount,
                 amplitude, change_percent, change_amount, outstanding_share, turnover_tate)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''' % (table, )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''' % (table, )
             cur.execute(sql, row)
 
         conn.commit()
@@ -79,18 +95,12 @@ def save(adjust='', start_date='19700101', end_date='20250830'):
         conn.close()
 
         print('done', adjust, symbol, name)
-        with open('daily.txt', 'a+') as fp:
-            fp.write(symbol + adjust + '\n')
+        with open('data/dup_daily.txt', 'a') as fp:
+            fp.write(dup + '\n')
 
         time.sleep(2)
 
 if __name__ == '__main__':
-    conn = sqlite3.connect('data/a_daily.db')
-    init_a_daily(conn) # 不复权
-    init_a_daily(conn, 'qfq') # 前复权
-    init_a_daily(conn, 'hfq') # 后复权
-    conn.close()
-
     #end_date = datetime.date.today().strftime('%Y%m%d')
     end_date = '20250830'
     #save(end_date=end_date)
