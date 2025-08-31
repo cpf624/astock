@@ -82,7 +82,7 @@ def save(adjust='', start_date='19700101', end_date='20250830'):
         with open('daily.txt', 'a+') as fp:
             fp.write(symbol + adjust + '\n')
 
-        time.sleep(1)
+        time.sleep(2)
 
 if __name__ == '__main__':
     conn = sqlite3.connect('data/a_daily.db')
