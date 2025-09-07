@@ -74,8 +74,6 @@ def save(trading_date):
         with open('data/dup_tick.txt', 'a') as fp:
             fp.write(dup + '\n')
 
-        time.sleep(2)
-
 if __name__ == '__main__':
     trading_date = '2025-08-29'
     save(trading_date)
