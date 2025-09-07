@@ -49,9 +49,6 @@ def init_rzrq(conn):
     conn.commit()
     cur.close()
 
-def f2i(fnum):
-    return int(fnum * 100)
-
 def download(symbol, page_num):
     symbol = symbol[2:]
     url = 'https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPTA_WEB_RZRQ_GGMX&columns=ALL&source=WEB&sortColumns=date&sortTypes=-1&pageNumber=' + str(page_num) + '&pageSize=50&filter=(scode%3D"' + symbol + '")&_=1757234633768'
@@ -64,6 +61,7 @@ def save():
     if not os.path.exists(dup_file):
         with open(dup_file, 'w') as fp:
             pass
+
     all_data = a_all.read()
     for symbol, name in all_data.items():
         dup = symbol
@@ -110,7 +108,7 @@ def save():
         
             print('done', symbol, name, page_num)
             time.sleep(2)
-            if not has_dup:
+            if has_dup:
                 break
 
         conn.commit()
